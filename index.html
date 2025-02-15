@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<head>
+  <script src="/orb.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const orb = new Orb(document.getElementById("mycanvas"));
+      window.orb = orb;
+      function f(t) {
+        orb.draw(t);
+        requestAnimationFrame(f);
+      }
+      requestAnimationFrame(f);
+    });
+  </script>
+</head>
+<body>
+  <canvas style="width: 50%;" id="mycanvas"></canvas>
+</body>

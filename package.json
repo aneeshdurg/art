@@ -1,0 +1,20 @@
+{
+  "name": "yourProject",
+  "version": "0.1.0",
+  "private": true,
+  "description": "",
+  "scripts": {
+    "build": "webpack"
+  },
+  "devDependencies": {
+    "ts-loader": "^8.0.2",
+    "typescript": "^5.7.3",
+    "webpack": "^5.97.1",
+    "webpack-cli": "^6.0.0",
+    "webpack-dev-server": "^5.2.0"
+  },
+  "dependencies": {
+    "h264-mp4-encoder": "^1.0.12",
+    "typescript-language-server": "^4.3.3"
+  }
+}

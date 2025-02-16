@@ -8,20 +8,23 @@ interface CPoint {
   y: number;
 };
 
-interface CelestialObject {
+class CelestialObject {
   radius: number;
   max_tail_length: number;
   color: string;
+
+  curr_tail_length: number = 0;
+
   getPosition: (t: number) => RPoint;
 }
 
 const SUN_RADIUS = 200;
-class Sun implements CelestialObject {
+class Sun extends CelestialObject {
   readonly radius = SUN_RADIUS / 10;
   readonly max_tail_length = 200;
   readonly color = "orange";
 
-  getPosition(_: number): RPoint {
+  getPosition = (_: number): RPoint => {
     return { r: 0, theta: 0 };
   }
 };
@@ -41,22 +44,22 @@ Neptune: 4.5 billion kilometers
 
 const EARTH_YEAR = 1 / 1000;
 
-class Mercury implements CelestialObject {
+class Mercury extends CelestialObject {
   readonly radius = 5;
   readonly max_tail_length = 160;
   readonly color = "red";
 
-  getPosition(t: number): RPoint {
+  getPosition = (t: number): RPoint => {
     return { r: SUN_RADIUS + 57.9, theta: t * 3 * EARTH_YEAR };
   }
 };
 
-class Venus implements CelestialObject {
+class Venus extends CelestialObject {
   readonly radius = 6;
   readonly max_tail_length = 200;
   readonly color = "grey";
 
-  getPosition(t: number): RPoint {
+  getPosition = (t: number): RPoint => {
     return {
       // r: SUN_RADIUS + 108.2,
       r: SUN_RADIUS + 120,
@@ -66,12 +69,12 @@ class Venus implements CelestialObject {
 };
 
 
-class Earth implements CelestialObject {
+class Earth extends CelestialObject {
   readonly radius = 8;
   readonly max_tail_length = 400;
   readonly color = "blue";
 
-  getPosition(t: number): RPoint {
+  getPosition = (t: number): RPoint => {
     return {
       // r: SUN_RADIUS + 149.6,
       r: SUN_RADIUS + 225,
@@ -80,12 +83,12 @@ class Earth implements CelestialObject {
   }
 };
 
-class Mars implements CelestialObject {
+class Mars extends CelestialObject {
   readonly radius = 9;
   readonly max_tail_length = 850;
   readonly color = "red";
 
-  getPosition(t: number): RPoint {
+  getPosition = (t: number): RPoint => {
     return {
       // r: SUN_RADIUS + 227.9,
       r: SUN_RADIUS + 350,
@@ -94,12 +97,12 @@ class Mars implements CelestialObject {
   }
 };
 
-class Jupiter implements CelestialObject {
+class Jupiter extends CelestialObject {
   readonly radius = 12;
   readonly max_tail_length = 1000;
   readonly color = "orange";
 
-  getPosition(t: number): RPoint {
+  getPosition = (t: number): RPoint => {
     return {
       // r: SUN_RADIUS + 778.3,
       r: SUN_RADIUS + 550,
@@ -108,12 +111,12 @@ class Jupiter implements CelestialObject {
   }
 };
 
-class Saturn implements CelestialObject {
+class Saturn extends CelestialObject {
   readonly radius = 13;
   readonly max_tail_length = 1500;
   readonly color = "orange";
 
-  getPosition(t: number): RPoint {
+  getPosition = (t: number): RPoint => {
     return {
       // r: SUN_RADIUS + 1430,
       r: SUN_RADIUS + 750,
@@ -122,12 +125,12 @@ class Saturn implements CelestialObject {
   }
 };
 
-class Uranus implements CelestialObject {
+class Uranus extends CelestialObject {
   readonly radius = 8;
   readonly max_tail_length = 3000;
   readonly color = "blue";
 
-  getPosition(t: number): RPoint {
+  getPosition = (t: number): RPoint => {
     return {
       // r: SUN_RADIUS + 2870,
       r: SUN_RADIUS + 950,
@@ -136,12 +139,12 @@ class Uranus implements CelestialObject {
   }
 };
 
-class Neptune implements CelestialObject {
+class Neptune extends CelestialObject {
   readonly radius = 7;
   readonly max_tail_length = 5250;
   readonly color = "blue";
 
-  getPosition(t: number): RPoint {
+  getPosition = (t: number): RPoint => {
     return {
       // r: SUN_RADIUS + 4500,
       r: SUN_RADIUS + 1200,
@@ -162,9 +165,11 @@ export default class Orb {
   reference_id: number = 0;
   ref_translation: number = 1;
   next_reference: number = 0;
+  ref_modified_ts: number = 0;
 
   prevPositions: Map<String, RPoint[]>;
   origins: CPoint[];
+  timestamps: number[];
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -191,6 +196,7 @@ export default class Orb {
     }
 
     this.origins = [];
+    this.timestamps = [];
   }
 
 
@@ -234,6 +240,7 @@ export default class Orb {
       if (this.ref_translation >= 1) {
         this.ref_translation = 1;
         this.reference_id = this.next_reference;
+        this.ref_modified_ts = t;
       }
     }
     let origin = { x: ox, y: oy };
@@ -272,6 +279,7 @@ export default class Orb {
         this.origins[points.length - 1],
         // this.toCPoint(ref_pos[points.length - 1])
       );
+      let last_ts = this.timestamps[points.length - 1];
       let prev_x = coords.x;
       let prev_y = coords.y;
       let start_x = coords.x;
@@ -299,12 +307,14 @@ export default class Orb {
 
       this.ctx.beginPath();
       this.ctx.moveTo(prev_x, prev_y);
-      for (let i = 2; i <= Math.min(points.length, obj.max_tail_length); i++) {
+      for (let i = 2; i <= Math.min(points.length, obj.curr_tail_length); i++) {
         coords = sunRPointToScreenCoords(
           points[points.length - i],
           this.origins[points.length - i],
           // this.toCPoint(ref_pos[points.length - 1])
         );
+        last_ts = this.timestamps[points.length - i];
+
         let x = coords.x;
         let y = coords.y;
 
@@ -314,7 +324,14 @@ export default class Orb {
         prev_y = y;
       }
       this.ctx.stroke();
+
+      if (last_ts < this.ref_modified_ts && obj.curr_tail_length > 1) {
+        obj.curr_tail_length -= 1;
+      } else if (obj.curr_tail_length < obj.max_tail_length) {
+        obj.curr_tail_length += 1;
+      }
     }
+
 
 
     // Draw planets
@@ -349,8 +366,10 @@ export default class Orb {
 
     if (this.origins.length >= PREVIOUS_POS_LENGTH) {
       this.origins.shift();
+      this.timestamps.shift();
     }
     this.origins.push(origin);
+    this.timestamps.push(t);
   }
 }
 

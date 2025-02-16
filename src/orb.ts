@@ -11,6 +11,7 @@ interface CPoint {
 interface CelestialObject {
   radius: number;
   max_tail_length: number;
+  color: string;
   getPosition: (t: number) => RPoint;
 }
 
@@ -18,6 +19,7 @@ const SUN_RADIUS = 200;
 class Sun implements CelestialObject {
   readonly radius = SUN_RADIUS / 10;
   readonly max_tail_length = 200;
+  readonly color = "orange";
 
   getPosition(_: number): RPoint {
     return { r: 0, theta: 0 };
@@ -42,6 +44,7 @@ const EARTH_YEAR = 1 / 1000;
 class Mercury implements CelestialObject {
   readonly radius = 5;
   readonly max_tail_length = 160;
+  readonly color = "red";
 
   getPosition(t: number): RPoint {
     return { r: SUN_RADIUS + 57.9, theta: t * 3 * EARTH_YEAR };
@@ -51,6 +54,7 @@ class Mercury implements CelestialObject {
 class Venus implements CelestialObject {
   readonly radius = 6;
   readonly max_tail_length = 200;
+  readonly color = "grey";
 
   getPosition(t: number): RPoint {
     return {
@@ -64,7 +68,8 @@ class Venus implements CelestialObject {
 
 class Earth implements CelestialObject {
   readonly radius = 8;
-  readonly max_tail_length = 800;
+  readonly max_tail_length = 400;
+  readonly color = "blue";
 
   getPosition(t: number): RPoint {
     return {
@@ -78,6 +83,7 @@ class Earth implements CelestialObject {
 class Mars implements CelestialObject {
   readonly radius = 9;
   readonly max_tail_length = 850;
+  readonly color = "red";
 
   getPosition(t: number): RPoint {
     return {
@@ -91,6 +97,7 @@ class Mars implements CelestialObject {
 class Jupiter implements CelestialObject {
   readonly radius = 12;
   readonly max_tail_length = 1000;
+  readonly color = "orange";
 
   getPosition(t: number): RPoint {
     return {
@@ -103,7 +110,8 @@ class Jupiter implements CelestialObject {
 
 class Saturn implements CelestialObject {
   readonly radius = 13;
-  readonly max_tail_length = 1000;
+  readonly max_tail_length = 1500;
+  readonly color = "orange";
 
   getPosition(t: number): RPoint {
     return {
@@ -116,7 +124,8 @@ class Saturn implements CelestialObject {
 
 class Uranus implements CelestialObject {
   readonly radius = 8;
-  readonly max_tail_length = 1000;
+  readonly max_tail_length = 3000;
+  readonly color = "blue";
 
   getPosition(t: number): RPoint {
     return {
@@ -129,13 +138,14 @@ class Uranus implements CelestialObject {
 
 class Neptune implements CelestialObject {
   readonly radius = 7;
-  readonly max_tail_length = 1000;
+  readonly max_tail_length = 5250;
+  readonly color = "blue";
 
   getPosition(t: number): RPoint {
     return {
       // r: SUN_RADIUS + 4500,
       r: SUN_RADIUS + 1200,
-      theta: t * 0.0625 * EARTH_YEAR
+      theta: t * 0.08 * EARTH_YEAR
     };
   }
 };
@@ -200,6 +210,10 @@ export default class Orb {
 
   draw(t: number) {
     // t = 0;
+    // this.ctx.fillStyle = "black";
+    // this.ctx.beginPath();
+    // this.ctx.rect(0, 0, this.canvas.width, this.canvas.height);
+    // this.ctx.fill();
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     // console.log("Draw", t);
     // Get the location from the reference
@@ -216,7 +230,7 @@ export default class Orb {
       ox = p.x * (1 - this.ref_translation) + n.x * this.ref_translation;
       oy = p.y * (1 - this.ref_translation) + n.y * this.ref_translation;
 
-      this.ref_translation += 1 / 1000;
+      this.ref_translation += 1 / 250;
       if (this.ref_translation >= 1) {
         this.ref_translation = 1;
         this.reference_id = this.next_reference;
@@ -238,14 +252,13 @@ export default class Orb {
     }
 
     // Draw tails
-    this.ctx.strokeStyle = "black";
     for (let ci = 0; ci < this.celestialObjects.length; ci++) {
-      const ref_pos = this.prevPositions.get(this.celestialObjects[this.next_reference].constructor.name);
-
       const obj = this.celestialObjects[ci];
       // if (ci == this.reference_id && this.ref_translation == 1) {
       //   continue;
       // }
+      this.ctx.strokeStyle = obj.color;
+
 
       const name = obj.constructor.name;
       const points = this.prevPositions.get(name);
@@ -261,7 +274,31 @@ export default class Orb {
       );
       let prev_x = coords.x;
       let prev_y = coords.y;
+      let start_x = coords.x;
+      let start_y = coords.y;
 
+      let i = 2;
+
+      //this.ctx.beginPath();
+      //this.ctx.moveTo(prev_x, prev_y);
+      //for (; i <= points.length; i++) {
+      //  coords = sunRPointToScreenCoords(
+      //    points[points.length - i],
+      //    this.origins[points.length - i],
+      //    // this.toCPoint(ref_pos[points.length - 1])
+      //  );
+      //  let x = coords.x;
+      //  let y = coords.y;
+
+      //  this.ctx.lineTo(x, y);
+
+      //  prev_x = x;
+      //  prev_y = y;
+      //}
+      //this.ctx.stroke();
+
+      this.ctx.beginPath();
+      this.ctx.moveTo(prev_x, prev_y);
       for (let i = 2; i <= Math.min(points.length, obj.max_tail_length); i++) {
         coords = sunRPointToScreenCoords(
           points[points.length - i],
@@ -271,14 +308,12 @@ export default class Orb {
         let x = coords.x;
         let y = coords.y;
 
-        this.ctx.beginPath();
-        this.ctx.moveTo(prev_x, prev_y);
         this.ctx.lineTo(x, y);
-        this.ctx.stroke();
 
         prev_x = x;
         prev_y = y;
       }
+      this.ctx.stroke();
     }
 
 
@@ -301,10 +336,10 @@ export default class Orb {
       this.ctx.beginPath();
       this.ctx.arc(x, y, obj.radius + 5, 0, 2 * Math.PI);
       this.ctx.fill();
-      this.ctx.strokeStyle = "black";
+      this.ctx.fillStyle = obj.color;
       this.ctx.beginPath();
       this.ctx.arc(x, y, obj.radius, 0, 2 * Math.PI);
-      this.ctx.stroke();
+      this.ctx.fill();
       this.ctx.font = `${obj.radius}px Serif`;
       this.ctx.fillStyle = "black";
       const label = name[0];
